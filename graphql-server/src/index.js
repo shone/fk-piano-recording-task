@@ -1,5 +1,6 @@
 const { ApolloServer, gql } = require("apollo-server");
 const { MongoMemoryServer } = require("mongodb-memory-server");
+const { ObjectId } = require("mongodb");
 const getMongoConnection = require("./getMongoConnection");
 
 // don't require a separate mongodb instance to run
@@ -11,6 +12,7 @@ const typeDefs = gql`
         _id: ID!
         title: String
         keyStrokes: [String]
+        durationSeconds: Int
     }
 
     type Query {
@@ -18,7 +20,8 @@ const typeDefs = gql`
     }
 
     type Mutation {
-        addSong(title: String, keyStrokes: [String]): Song
+        addSong(title: String, keyStrokes: [String], durationSeconds: Int): Song
+        deleteSong(id: ID): ID
     }
 `;
 
@@ -26,6 +29,8 @@ const resolvers = {
     Query: {
         songs: async () => {
             const mongodb = await getMongoConnection();
+            // Add artificial delay to demonstrate front-end loading indicator
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return mongodb
                 .collection("songs")
                 .find({})
@@ -33,12 +38,17 @@ const resolvers = {
         },
     },
     Mutation: {
-        addSong: async (_, { title, keyStrokes }) => {
+        addSong: async (_, { title, keyStrokes, durationSeconds }) => {
             const mongodb = await getMongoConnection();
-            const newSong = { title, keyStrokes };
+            const newSong = { title, keyStrokes, durationSeconds };
             const response = await mongodb.collection("songs").insertOne(newSong);
 
             return { ...newSong, _id: response.insertedId };
+        },
+        deleteSong: async (_, { id }) => {
+            const mongodb = await getMongoConnection();
+            const response = await mongodb.collection("songs").deleteOne({_id: ObjectId(id)});
+            return id;
         },
     },
 };

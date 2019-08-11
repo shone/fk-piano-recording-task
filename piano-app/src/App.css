@@ -1,5 +1,190 @@
-.App {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #0b0f19;
+    font-family: sans-serif;
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+}
+
+.app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.current-recording-container {
+    flex-shrink: 0;
+    flex-grow: 0;
+    height: 50px;
+    display: flex;
+    flex-direction: row;
+    background-color: #131827;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+.current-recording-container input {
+    background-color: transparent;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 60px;
+}
+.current-recording-container button {
+    margin-left: 5px;
+    width: 100px;
+}
+
+.time {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-left:  10px;
+    padding-right: 10px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.piano {
+   flex-shrink: 0;
+   flex-grow: 0;
+   position: relative;
+}
+.ReactPiano__Keyboard {
+    width: 100% !important;
+    height: 20vw !important;
+    max-height: 50vh;
+    min-height: 20vh;
+}
+
+.saved-song-list {
+    flex-shrink: 1;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    min-height: 20px;
+    overflow: auto;
+    position: relative;
+}
+.saved-song-list.loading:before {
+    content: '';
+    display: block;
+    position: absolute;
+    left:   0;
+    top:    0;
+    right:  0;
+    bottom: 0;
+    background-color: #fff;
+    opacity: 0;
+    animation: 0.5s loading-flash infinite alternate;
+}
+@keyframes loading-flash {
+    from { opacity: 0.2; }
+    to   { opacity: 0; }
+}
+.saved-song-list.loading:after {
+    content: 'loading...';
+    display: flex;
+    position: absolute;
+    left:   0;
+    top:    0;
+    right:  0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
+.saved-song-list li {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 30px;
+    width: 400px;
+    flex-shrink: 0;
+    background-image: url('song_icon.svg');
+    background-repeat: no-repeat;
+    background-position: left;
+    padding-left: 45px;
+    padding-right: 5px;
+    margin-top:    5px;
+    margin-bottom: 5px;
+}
+.saved-song-list li .title {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.saved-song-list li .play-button {
+    height: 30px;
+    width: 70px;
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+.saved-song-list li .delete-button {
+    margin-left: 10px;
+    width: 18px;
+    height: 18px;
+    background-color: transparent;
+    background-image: url('delete_icon.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+.saved-song-list li .delete-button:active {
+    border: none;
+}
+
+@media (max-width: 500px) {
+    .saved-song-list {
+        flex-wrap: nowrap;
+    }
+    .saved-song-list li {
+        width: auto;
+    }
+}
+
+button {
+    background-color: #eb7f00;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+}
+button:hover {
+    background-color: #ff9e2b;
+}
+button:active,button.active {
+    border: 5px solid #fff;
+}
+button.record-button.active {
+    animation: 0.4s flash-button-active infinite alternate;
+}
+button:focus {
+    outline: none;
+}
+button[disabled] {
+    background-color: grey;
+    cursor: not-allowed;
+}
+@keyframes flash-button-active {
+    from {border: 5px solid #fff;}
+    to   {border: 5px solid #ffffff30;}
+}
+
+ul {
+    margin: 0;
+    list-style-type: none;
+    padding: 0;
+    color: #fff;
 }

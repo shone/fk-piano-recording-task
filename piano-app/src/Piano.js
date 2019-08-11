@@ -16,25 +16,28 @@ const keyboardShortcuts = KeyboardShortcuts.create({
     keyboardConfig: KeyboardShortcuts.HOME_ROW,
 });
 
-function Piano() {
+function Piano(props) {
     return (
-        <SoundfontProvider
-            instrumentName="acoustic_grand_piano"
-            audioContext={audioContext}
-            hostname={soundfontHostname}
-            render={({ isLoading, playNote, stopNote }) => (
-                <div>
+        <div className="piano">
+            <SoundfontProvider
+                instrumentName="acoustic_grand_piano"
+                audioContext={audioContext}
+                hostname={soundfontHostname}
+                render={({ isLoading, playNote, stopNote }) => (
                     <ReactPiano
-                        disabled={isLoading}
+                        disabled={isLoading || props.disabled}
                         noteRange={noteRange}
                         playNote={playNote}
                         stopNote={stopNote}
                         width={1000}
                         keyboardShortcuts={keyboardShortcuts}
+                        onPlayNoteInput={props.onPlayNoteInput}
+                        onStopNoteInput={props.onStopNoteInput}
+                        activeNotes={props.activeNotes}
                     />
-                </div>
-            )}
-        />
+                )}
+            />
+        </div>
     );
 }
 
