@@ -21,11 +21,13 @@ function App() {
     const [newSongName, setNewSongName] = useState('untitled');
     const [notes, setNotes] = useState([]);
 
+    const [errorPopupMessage, setErrorPopupMessage] = useState(null);
+
     const GET_SONGS = gql`{ songs { _id title keyStrokes durationSeconds } }`;
 
-    const { loading, data } = useQuery(GET_SONGS);
+    const { loading, error, data } = useQuery(GET_SONGS);
 
-    const [addSong] = useMutation(
+    const [addSong, addSongStatus] = useMutation(
         gql`mutation AddSong($title: String, $keyStrokes: [String], $durationSeconds: Int) {
             addSong(title: $title, keyStrokes: $keyStrokes, durationSeconds: $durationSeconds) { _id title keyStrokes durationSeconds }
         }`,
@@ -139,14 +141,21 @@ function App() {
     }
 
     async function save() {
-        if (notes.length === 0) {
+        if (notes.length === 0 || addSongStatus.loading) {
             return;
         }
         const keyStrokes = notes.map(note => `${note.note} ${(note.state ? 'on' : 'off')} ${note.delay}`);
-        addSong({variables: {title: newSongName, keyStrokes: keyStrokes, durationSeconds: currentRecordingTime}});
+        try {
+            await addSong({variables: {title: newSongName, keyStrokes: keyStrokes, durationSeconds: currentRecordingTime}});
+        } catch(e) {
+            setErrorPopupMessage('Unable to add song');
+        }
     }
 
-    function handleKeyup(event) {
+    function handleKeydown(event) {
+        if (errorPopupMessage) {
+            return;
+        }
         if (event.key === ' ' && !isRenaming) {
             event.preventDefault();
             togglePlayback();
@@ -162,11 +171,11 @@ function App() {
         }
     }
     useEffect(() => {
-        window.addEventListener('keyup', handleKeyup);
+        window.addEventListener('keydown', handleKeydown);
         return () => {
-            window.removeEventListener('keyup', handleKeyup);
+            window.removeEventListener('keydown', handleKeydown);
         }
-    }, [handleKeyup]);
+    }, [handleKeydown]);
 
     function onNewSongNameChange(event) {
         setNewSongName(event.target.value);
@@ -179,7 +188,7 @@ function App() {
     return (
         <div className="app">
             <ul className={'saved-song-list' + (loading ? ' loading' : '')}>
-                {loading ? '' : 
+                {(loading || error) ? '' : 
                 data.songs.map(song => {return (
                     <li key={song._id}>
                         <span className="title">{song.title}</span>
@@ -194,14 +203,22 @@ function App() {
                 <span className="time">{secondsToDisplayString(currentRecordingTime)}</span>
                 <button onClick={toggleRecording} className={'record-button ' + (mode === 'recording' ? 'active' : '')}>⏺ Record</button>
                 <button onClick={togglePlayback} className={mode === 'playing' ? 'active' : ''} disabled={notes.length === 0}>▶ Play</button>
-                <button onClick={save} disabled={notes.length === 0}>Save ⮥</button>
+                <button onClick={save} disabled={notes.length === 0 || addSongStatus.loading} className={addSongStatus.loading ? 'waiting' : ''}>Save ⮥</button>
             </div>
             <Piano
-                onPlayNoteInput={note => { notifyNote(note, true);}}
-                onStopNoteInput={note => { notifyNote(note, false);}}
+                onPlayNoteInput={note => { notifyNote(note, true) }}
+                onStopNoteInput={note => { notifyNote(note, false) }}
                 activeNotes={activeNotes}
                 disabled={isRenaming}
             />
+            {errorPopupMessage ? 
+                <div className="popup-container">
+                    <div className="error-popup">
+                        <div className="message">{errorPopupMessage}</div>
+                        <button onClick={() => setErrorPopupMessage(null)}>Ok</button>
+                    </div>
+                </div>
+            : ''}
         </div>
     )
 }

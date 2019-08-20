@@ -28,9 +28,10 @@ const typeDefs = gql`
 const resolvers = {
     Query: {
         songs: async () => {
-            const mongodb = await getMongoConnection();
             // Add artificial delay to demonstrate front-end loading indicator
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const mongodb = await getMongoConnection();
             return mongodb
                 .collection("songs")
                 .find({})
@@ -39,6 +40,9 @@ const resolvers = {
     },
     Mutation: {
         addSong: async (_, { title, keyStrokes, durationSeconds }) => {
+            // Add artificial delay to demonstrate front-end loading indicator
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             const mongodb = await getMongoConnection();
             const newSong = { title, keyStrokes, durationSeconds };
             const response = await mongodb.collection("songs").insertOne(newSong);

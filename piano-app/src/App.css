@@ -26,8 +26,7 @@ html, body {
     display: flex;
     flex-direction: row;
     background-color: #131827;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 5px;
 }
 .current-recording-container input {
     background-color: transparent;
@@ -103,6 +102,18 @@ html, body {
     align-items: center;
     color: #fff;
 }
+.saved-song-list.error:after {
+    content: 'unable to load songs';
+    display: flex;
+    position: absolute;
+    left:   0;
+    top:    0;
+    right:  0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    color: red;
+}
 
 .saved-song-list li {
     display: flex;
@@ -118,12 +129,14 @@ html, body {
     padding-right: 5px;
     margin-top:    5px;
     margin-bottom: 5px;
+    margin-right: 30px;
 }
 .saved-song-list li .title {
     flex-grow: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    border-bottom: 1px solid #fff;
 }
 .saved-song-list li .play-button {
     height: 30px;
@@ -154,6 +167,38 @@ html, body {
     }
 }
 
+.popup-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+}
+.error-popup {
+    background: #fff;
+    border-radius: 5px;
+    font-size: 20px;
+    width: 300px;
+    height: 150px;
+    max-width:  90vw;
+    max-height: 90vh;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 3px 3px 15px #000;
+}
+.error-popup .message {
+    flex-grow: 1;
+}
+.error-popup button {
+    height: 30px;
+}
+
 button {
     background-color: #eb7f00;
     color: #fff;
@@ -180,6 +225,15 @@ button[disabled] {
 @keyframes flash-button-active {
     from {border: 5px solid #fff;}
     to   {border: 5px solid #ffffff30;}
+}
+button[disabled].waiting {
+    background-color: #eb7f00;
+    cursor: wait;
+    animation: 0.4s flash-button-waiting infinite alternate;
+}
+@keyframes flash-button-waiting {
+    from {background-color: #eb7f00; }
+    to   {background-color: #ffcd93;}
 }
 
 ul {
