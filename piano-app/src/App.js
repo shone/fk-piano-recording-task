@@ -110,6 +110,7 @@ function App() {
         setIdle();
         setLastRecordedTimestamp(null);
         setMode('playing');
+        const playbackActiveNotes = new Set([]);
         const remainingNotes = notes_.slice();
         const playRemainingNotes = () => {
             const note = remainingNotes.shift();
@@ -120,13 +121,12 @@ function App() {
                 return;
             }
             setPlaybackTimer(setTimeout(() => {
-                const newActiveNotes = new Set(activeNotes);
                 if (note.state) {
-                    newActiveNotes.add(note.note);
+                    playbackActiveNotes.add(note.note);
                 } else {
-                    newActiveNotes.delete(note.note);
+                    playbackActiveNotes.delete(note.note);
                 }
-                setActiveNotes([...newActiveNotes]);
+                setActiveNotes([...playbackActiveNotes]);
                 playRemainingNotes();
             }, note.delay));
         }
