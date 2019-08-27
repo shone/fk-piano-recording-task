@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import Piano from "./Piano";
 import "react-piano/dist/styles.css";
+import Popup from "./Popup";
+import "./popup.css";
 import { useQuery, useMutation } from '@apollo/react-hooks';
 import gql from 'graphql-tag';
 
@@ -26,8 +28,9 @@ function App() {
     const GET_SONGS = gql`{ songs { _id title keyStrokes durationSeconds } }`;
 
     const { loading, error, data } = useQuery(GET_SONGS);
+    const [isGetSongsErrorDismissed, setIsGetSongsErrorDismissed] = useState(false);
 
-    const [addSong, addSongStatus] = useMutation(
+    const [db_addSong, db_addSongStatus] = useMutation(
         gql`mutation AddSong($title: String, $keyStrokes: [String], $durationSeconds: Int) {
             addSong(title: $title, keyStrokes: $keyStrokes, durationSeconds: $durationSeconds) { _id title keyStrokes durationSeconds }
         }`,
@@ -42,7 +45,7 @@ function App() {
         }
     );
 
-    const [deleteSong] = useMutation(
+    const [db_deleteSong] = useMutation(
         gql`mutation DeleteSong($id: ID) {
             deleteSong(id: $id)
         }`,
@@ -141,19 +144,27 @@ function App() {
     }
 
     async function save() {
-        if (notes.length === 0 || addSongStatus.loading) {
+        if (notes.length === 0 || loading || error || db_addSongStatus.loading) {
             return;
         }
         const keyStrokes = notes.map(note => `${note.note} ${(note.state ? 'on' : 'off')} ${note.delay}`);
         try {
-            await addSong({variables: {title: newSongName, keyStrokes: keyStrokes, durationSeconds: currentRecordingTime}});
+            await db_addSong({variables: {title: newSongName, keyStrokes: keyStrokes, durationSeconds: currentRecordingTime}});
         } catch(e) {
             setErrorPopupMessage('Unable to add song');
         }
     }
 
+    async function deleteSong(songId) {
+        try {
+            await db_deleteSong({variables: {id: songId}});
+        } catch(e) {
+            setErrorPopupMessage('Unable to delete song');
+        }
+    }
+
     function handleKeydown(event) {
-        if (errorPopupMessage) {
+        if (errorPopupMessage || (error && !isGetSongsErrorDismissed)) {
             return;
         }
         if (event.key === ' ' && !isRenaming) {
@@ -194,7 +205,7 @@ function App() {
                         <span className="title">{song.title}</span>
                         <span className="time">{secondsToDisplayString(song.durationSeconds)}</span>
                         <button className="play-button" onClick={() => playSong(song._id)}>▶ Play</button>
-                        <button className="delete-button" onClick={() => deleteSong({variables: {id: song._id}})}></button>
+                        <button className="delete-button" onClick={() => deleteSong(song._id)}></button>
                     </li>
                 )})}
             </ul>
@@ -203,7 +214,7 @@ function App() {
                 <span className="time">{secondsToDisplayString(currentRecordingTime)}</span>
                 <button onClick={toggleRecording} className={'record-button ' + (mode === 'recording' ? 'active' : '')}>⏺ Record</button>
                 <button onClick={togglePlayback} className={mode === 'playing' ? 'active' : ''} disabled={notes.length === 0}>▶ Play</button>
-                <button onClick={save} disabled={notes.length === 0 || addSongStatus.loading} className={addSongStatus.loading ? 'waiting' : ''}>Save ⮥</button>
+                <button onClick={save} disabled={notes.length === 0 || loading || error || db_addSongStatus.loading} className={db_addSongStatus.loading ? 'waiting' : ''}>Save ⮥</button>
             </div>
             <Piano
                 onPlayNoteInput={note => { notifyNote(note, true) }}
@@ -211,14 +222,8 @@ function App() {
                 activeNotes={activeNotes}
                 disabled={isRenaming}
             />
-            {errorPopupMessage ? 
-                <div className="popup-container">
-                    <div className="error-popup">
-                        <div className="message">{errorPopupMessage}</div>
-                        <button onClick={() => setErrorPopupMessage(null)}>Ok</button>
-                    </div>
-                </div>
-            : ''}
+            {(error && !isGetSongsErrorDismissed) ? <Popup message="Could not load songs" onOk={() => setIsGetSongsErrorDismissed(true)} detail="Is the server running?"/> : ''}
+            {errorPopupMessage ? <Popup message={errorPopupMessage} onOk={() => setErrorPopupMessage(null)} detail="Is the server running?"/> : ''}
         </div>
     )
 }
