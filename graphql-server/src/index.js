@@ -12,9 +12,9 @@ const { ApolloServer, gql } = require("apollo-server");
         typeDefs: gql`
             type Song {
                 _id: ID!
-                title: String
-                keyStrokes: [String]
-                durationSeconds: Int
+                title: String!
+                keyStrokes: [String]!
+                durationSeconds: Int!
             }
 
             type Query {
@@ -22,8 +22,8 @@ const { ApolloServer, gql } = require("apollo-server");
             }
 
             type Mutation {
-                addSong(title: String, keyStrokes: [String], durationSeconds: Int): Song
-                deleteSong(id: ID): ID
+                addSong(title: String!, keyStrokes: [String]!, durationSeconds: Int!): Song
+                deleteSong(id: ID!): ID
             }
         `,
         resolvers: {

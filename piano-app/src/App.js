@@ -31,7 +31,7 @@ function App() {
     const [isGetSongsErrorDismissed, setIsGetSongsErrorDismissed] = useState(false);
 
     const [db_addSong, db_addSongStatus] = useMutation(
-        gql`mutation AddSong($title: String, $keyStrokes: [String], $durationSeconds: Int) {
+        gql`mutation AddSong($title: String!, $keyStrokes: [String]!, $durationSeconds: Int!) {
             addSong(title: $title, keyStrokes: $keyStrokes, durationSeconds: $durationSeconds) { _id title keyStrokes durationSeconds }
         }`,
         {
@@ -46,7 +46,7 @@ function App() {
     );
 
     const [db_deleteSong] = useMutation(
-        gql`mutation DeleteSong($id: ID) {
+        gql`mutation DeleteSong($id: ID!) {
             deleteSong(id: $id)
         }`,
         {
