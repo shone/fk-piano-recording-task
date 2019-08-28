@@ -13,8 +13,19 @@ const { ApolloServer, gql } = require("apollo-server");
             type Song {
                 _id: ID!
                 title: String!
-                keyStrokes: [String]!
+                events: [SongEvent]!
                 durationSeconds: Int!
+            }
+
+            type SongEvent {
+                delayMs: Float!
+                note: Int!
+                state: Boolean!
+            }
+            input SongEventInput {
+                delayMs: Float!
+                note: Int!
+                state: Boolean!
             }
 
             type Query {
@@ -22,7 +33,7 @@ const { ApolloServer, gql } = require("apollo-server");
             }
 
             type Mutation {
-                addSong(title: String!, keyStrokes: [String]!, durationSeconds: Int!): Song
+                addSong(title: String!, events: [SongEventInput]!, durationSeconds: Int!): Song
                 deleteSong(id: ID!): ID
             }
         `,
@@ -39,11 +50,11 @@ const { ApolloServer, gql } = require("apollo-server");
                 },
             },
             Mutation: {
-                addSong: async (_, { title, keyStrokes, durationSeconds }) => {
+                addSong: async (_, { title, events, durationSeconds }) => {
                     // Add artificial delay to demonstrate front-end loading indicator
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
-                    const newSong = { title, keyStrokes, durationSeconds };
+                    const newSong = { title, events, durationSeconds };
                     const response = await mongodb.collection("songs").insertOne(newSong);
 
                     return { ...newSong, _id: response.insertedId };

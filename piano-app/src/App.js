@@ -21,18 +21,38 @@ function App() {
     const [activeNotes, setActiveNotes] = useState([]);
     const [isRenaming, setRenaming] = useState(false);
     const [newSongName, setNewSongName] = useState('untitled');
-    const [notes, setNotes] = useState([]);
+    const [recordedEvents, setRecordedEvents] = useState([]);
 
     const [errorPopupMessage, setErrorPopupMessage] = useState(null);
 
-    const GET_SONGS = gql`{ songs { _id title keyStrokes durationSeconds } }`;
+    const GET_SONGS = gql`{
+        songs {
+            _id
+            title
+            events {
+                delayMs
+                note
+                state
+            }
+            durationSeconds
+        }
+    }`;
 
     const { loading, error, data } = useQuery(GET_SONGS);
     const [isGetSongsErrorDismissed, setIsGetSongsErrorDismissed] = useState(false);
 
     const [db_addSong, db_addSongStatus] = useMutation(
-        gql`mutation AddSong($title: String!, $keyStrokes: [String]!, $durationSeconds: Int!) {
-            addSong(title: $title, keyStrokes: $keyStrokes, durationSeconds: $durationSeconds) { _id title keyStrokes durationSeconds }
+        gql`mutation AddSong($title: String!, $events: [SongEventInput]!, $durationSeconds: Int!) {
+            addSong(title: $title, events: $events, durationSeconds: $durationSeconds) {
+                _id
+                title
+                events {
+                    delayMs
+                    note
+                    state
+                }
+                durationSeconds
+            }
         }`,
         {
             update(cache, { data: { addSong } }) {
@@ -63,7 +83,7 @@ function App() {
     function toggleRecording() {
         if (mode !== 'recording') {
             setIdle();
-            setNotes([]);
+            setRecordedEvents([]);
             clearTimeout(playbackTimer);
             setMode('recording');
             setActiveNotes([]);
@@ -100,56 +120,52 @@ function App() {
     function notifyNote(note, state) {
         if (mode === 'recording') {
             const now = performance.now();
-            const delay = lastRecordedTimestamp ? now - lastRecordedTimestamp : 0;
-            setNotes(notes.concat([{note, state, delay}]));
+            const delayMs = lastRecordedTimestamp ? now - lastRecordedTimestamp : 0;
+            setRecordedEvents(recordedEvents.concat([{note, state, delayMs}]));
             setLastRecordedTimestamp(now);
         }
     }
 
-    function play(notes_ = notes) {
+    function play(events_ = recordedEvents) {
         setIdle();
         setLastRecordedTimestamp(null);
         setMode('playing');
         const playbackActiveNotes = new Set([]);
-        const remainingNotes = notes_.slice();
-        const playRemainingNotes = () => {
-            const note = remainingNotes.shift();
-            if (!note) {
+        const remainingEvents = events_.slice();
+        const playRemainingEvents = () => {
+            const event = remainingEvents.shift();
+            if (!event) {
                 setPlaybackTimer(null);
                 setMode('idle');
                 setActiveNotes([]);
                 return;
             }
             setPlaybackTimer(setTimeout(() => {
-                if (note.state) {
-                    playbackActiveNotes.add(note.note);
+                if (event.state) {
+                    playbackActiveNotes.add(event.note);
                 } else {
-                    playbackActiveNotes.delete(note.note);
+                    playbackActiveNotes.delete(event.note);
                 }
                 setActiveNotes([...playbackActiveNotes]);
-                playRemainingNotes();
-            }, note.delay));
+                playRemainingEvents();
+            }, event.delayMs));
         }
-        playRemainingNotes();
+        playRemainingEvents();
     }
 
     function playSong(id) {
         const song = data.songs.find(song => song._id === id);
         if (song) {
-            play(song.keyStrokes.map(entry => {
-                const [note, state, delay] = entry.split(' ');
-                return {note: parseInt(note), state: state === 'on', delay};
-            }));
+            play(song.events);
         }
     }
 
     async function save() {
-        if (notes.length === 0 || loading || error || db_addSongStatus.loading) {
+        if (recordedEvents.length === 0 || loading || error || db_addSongStatus.loading) {
             return;
         }
-        const keyStrokes = notes.map(note => `${note.note} ${(note.state ? 'on' : 'off')} ${note.delay}`);
         try {
-            await db_addSong({variables: {title: newSongName, keyStrokes: keyStrokes, durationSeconds: currentRecordingTime}});
+            await db_addSong({variables: {title: newSongName, events: recordedEvents, durationSeconds: currentRecordingTime}});
         } catch(e) {
             setErrorPopupMessage('Unable to add song');
         }
@@ -213,8 +229,8 @@ function App() {
                 <input value={newSongName} onChange={event => onNewSongNameChange(event)} onFocus={() => setRenaming(true)} onBlur={() => setRenaming(false)}/>
                 <span className="time">{secondsToDisplayString(currentRecordingTime)}</span>
                 <button onClick={toggleRecording} className={'record-button ' + (mode === 'recording' ? 'active' : '')}>⏺ Record</button>
-                <button onClick={togglePlayback} className={mode === 'playing' ? 'active' : ''} disabled={notes.length === 0}>▶ Play</button>
-                <button onClick={save} disabled={notes.length === 0 || loading || error || db_addSongStatus.loading} className={db_addSongStatus.loading ? 'waiting' : ''}>Save ⮥</button>
+                <button onClick={togglePlayback} className={mode === 'playing' ? 'active' : ''} disabled={recordedEvents.length === 0}>▶ Play</button>
+                <button onClick={save} disabled={recordedEvents.length === 0 || loading || error || db_addSongStatus.loading} className={db_addSongStatus.loading ? 'waiting' : ''}>Save ⮥</button>
             </div>
             <Piano
                 onPlayNoteInput={note => { notifyNote(note, true) }}
