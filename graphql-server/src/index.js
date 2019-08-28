@@ -1,64 +1,61 @@
-const { ApolloServer, gql } = require("apollo-server");
 const { MongoMemoryServer } = require("mongodb-memory-server");
-const { ObjectId } = require("mongodb");
-const getMongoConnection = require("./getMongoConnection");
+const { MongoClient, ObjectId } = require("mongodb");
+const { ApolloServer, gql } = require("apollo-server");
 
-// don't require a separate mongodb instance to run
-new MongoMemoryServer({ instance: { port: 27017 } });
+(async function() {
+    const mongoMemoryServer = new MongoMemoryServer();
+    const mongoUri = await mongoMemoryServer.getConnectionString();
+    const mongoConnection = await MongoClient.connect(mongoUri);
+    const mongodb = mongoConnection.db("graphqldb");
 
-// this API is just an example, you can modify any parts if needed for the task
-const typeDefs = gql`
-    type Song {
-        _id: ID!
-        title: String
-        keyStrokes: [String]
-        durationSeconds: Int
-    }
+    const apolloServer = new ApolloServer({
+        typeDefs: gql`
+            type Song {
+                _id: ID!
+                title: String
+                keyStrokes: [String]
+                durationSeconds: Int
+            }
 
-    type Query {
-        songs: [Song]
-    }
+            type Query {
+                songs: [Song]
+            }
 
-    type Mutation {
-        addSong(title: String, keyStrokes: [String], durationSeconds: Int): Song
-        deleteSong(id: ID): ID
-    }
-`;
+            type Mutation {
+                addSong(title: String, keyStrokes: [String], durationSeconds: Int): Song
+                deleteSong(id: ID): ID
+            }
+        `,
+        resolvers: {
+            Query: {
+                songs: async () => {
+                    // Add artificial delay to demonstrate front-end loading indicator
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
-const resolvers = {
-    Query: {
-        songs: async () => {
-            // Add artificial delay to demonstrate front-end loading indicator
-            await new Promise(resolve => setTimeout(resolve, 2000));
+                    return mongodb
+                        .collection("songs")
+                        .find({})
+                        .toArray();
+                },
+            },
+            Mutation: {
+                addSong: async (_, { title, keyStrokes, durationSeconds }) => {
+                    // Add artificial delay to demonstrate front-end loading indicator
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const mongodb = await getMongoConnection();
-            return mongodb
-                .collection("songs")
-                .find({})
-                .toArray();
-        },
-    },
-    Mutation: {
-        addSong: async (_, { title, keyStrokes, durationSeconds }) => {
-            // Add artificial delay to demonstrate front-end loading indicator
-            await new Promise(resolve => setTimeout(resolve, 2000));
+                    const newSong = { title, keyStrokes, durationSeconds };
+                    const response = await mongodb.collection("songs").insertOne(newSong);
 
-            const mongodb = await getMongoConnection();
-            const newSong = { title, keyStrokes, durationSeconds };
-            const response = await mongodb.collection("songs").insertOne(newSong);
+                    return { ...newSong, _id: response.insertedId };
+                },
+                deleteSong: async (_, { id }) => {
+                    const response = await mongodb.collection("songs").deleteOne({_id: ObjectId(id)});
+                    return id;
+                },
+            },
+        }
+    });
 
-            return { ...newSong, _id: response.insertedId };
-        },
-        deleteSong: async (_, { id }) => {
-            const mongodb = await getMongoConnection();
-            const response = await mongodb.collection("songs").deleteOne({_id: ObjectId(id)});
-            return id;
-        },
-    },
-};
-
-const server = new ApolloServer({ typeDefs, resolvers });
-
-server.listen().then(({ url }) => {
+    const {url} = await apolloServer.listen();
     console.log(`GraphQL server running: ${url}`);
-});
+})();
