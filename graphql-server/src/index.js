@@ -1,50 +1,72 @@
-const { ApolloServer, gql } = require("apollo-server");
 const { MongoMemoryServer } = require("mongodb-memory-server");
-const getMongoConnection = require("./getMongoConnection");
+const { MongoClient, ObjectId } = require("mongodb");
+const { ApolloServer, gql } = require("apollo-server");
 
-// don't require a separate mongodb instance to run
-new MongoMemoryServer({ instance: { port: 27017 } });
+(async function() {
+    const mongoMemoryServer = new MongoMemoryServer();
+    const mongoUri = await mongoMemoryServer.getConnectionString();
+    const mongoConnection = await MongoClient.connect(mongoUri);
+    const mongodb = mongoConnection.db("graphqldb");
 
-// this API is just an example, you can modify any parts if needed for the task
-const typeDefs = gql`
-    type Song {
-        _id: ID!
-        title: String
-        keyStrokes: [String]
-    }
+    const apolloServer = new ApolloServer({
+        typeDefs: gql`
+            type Song {
+                _id: ID!
+                title: String!
+                events: [SongEvent]!
+                durationSeconds: Int!
+            }
 
-    type Query {
-        songs: [Song]
-    }
+            type SongEvent {
+                delayMs: Float!
+                note: Int!
+                state: Boolean!
+            }
+            input SongEventInput {
+                delayMs: Float!
+                note: Int!
+                state: Boolean!
+            }
 
-    type Mutation {
-        addSong(title: String, keyStrokes: [String]): Song
-    }
-`;
+            type Query {
+                songs: [Song]
+            }
 
-const resolvers = {
-    Query: {
-        songs: async () => {
-            const mongodb = await getMongoConnection();
-            return mongodb
-                .collection("songs")
-                .find({})
-                .toArray();
-        },
-    },
-    Mutation: {
-        addSong: async (_, { title, keyStrokes }) => {
-            const mongodb = await getMongoConnection();
-            const newSong = { title, keyStrokes };
-            const response = await mongodb.collection("songs").insertOne(newSong);
+            type Mutation {
+                addSong(title: String!, events: [SongEventInput]!, durationSeconds: Int!): Song
+                deleteSong(id: ID!): ID
+            }
+        `,
+        resolvers: {
+            Query: {
+                songs: async () => {
+                    // Add artificial delay to demonstrate front-end loading indicator
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
-            return { ...newSong, _id: response.insertedId };
-        },
-    },
-};
+                    return mongodb
+                        .collection("songs")
+                        .find({})
+                        .toArray();
+                },
+            },
+            Mutation: {
+                addSong: async (_, { title, events, durationSeconds }) => {
+                    // Add artificial delay to demonstrate front-end loading indicator
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
-const server = new ApolloServer({ typeDefs, resolvers });
+                    const newSong = { title, events, durationSeconds };
+                    const response = await mongodb.collection("songs").insertOne(newSong);
 
-server.listen().then(({ url }) => {
+                    return { ...newSong, _id: response.insertedId };
+                },
+                deleteSong: async (_, { id }) => {
+                    const response = await mongodb.collection("songs").deleteOne({_id: ObjectId(id)});
+                    return id;
+                },
+            },
+        }
+    });
+
+    const {url} = await apolloServer.listen();
     console.log(`GraphQL server running: ${url}`);
-});
+})();

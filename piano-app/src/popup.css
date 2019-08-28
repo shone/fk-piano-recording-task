@@ -1,0 +1,36 @@
+.popup-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    background: #00000091;
+}
+.error-popup {
+    background: #fff;
+    border-radius: 5px;
+    font-size: 20px;
+    width: 300px;
+    height: 150px;
+    max-width:  90vw;
+    max-height: 90vh;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 3px 3px 15px #000;
+}
+.error-popup .message {
+    flex-grow: 1;
+}
+.error-popup .detail {
+    font-size: 14px;
+    flex-grow: 1;
+}
+.error-popup button {
+    height: 30px;
+}
